@@ -1,0 +1,105 @@
+Category,Chromosome,Position,Gene_ID,Locus_Name,Ref,Alt
+
+Soybean Cyst Nematode,Chr02,44697705,Glyma.02G260400,SCN_GmSNAP02,GmSNAP02-WT,GmSNAP02-INS
+
+Soybean Cyst Nematode,Chr02,44695753,Glyma.02G260400,SCN_GmSNAP02,GmSNAP02-WT,GmSNAP02-DEL
+
+Soybean Cyst Nematode,Chr08,8361148,Glyma.08G108900,SCN_GmSHMT08/Rhg4,Rhg4,rhg4
+
+Soybean Cyst Nematode,Chr11,32969916,Glyma.11G234500,SCN_Rhg2/GmSNAP11,Rhg2,rhg2
+
+Soybean Cyst Nematode,Chr15,20631002,Glyma.15G191200,SCN_GmSNAP15,GmSNAP15,GmSNAP15-R
+
+Soybean Cyst Nematode,Chr18,1643660,Glyma.18G022500,SCN_Rhg1/GmSNAP18,Rhg1-c,rhg1-a
+
+Soybean Cyst Nematode,Chr18,1643643,Glyma.18G022500,SCN_Rhg1/GmSNAP18,Rhg1-c,rhg1-b
+
+Soybean Cyst Nematode,Chr18,1645409,Glyma.18G022500,SCN_Rhg1/GmSNAP18,Rhg1-c,rhg1-a/b
+
+Pod Wall,Chr03,528386,Glyma.03G005700,Pod_wall_L2,l2_REF,L2_T3A
+
+Pod Wall,Chr03,528236,Glyma.03G005700,Pod_wall_L2,REF,l2_Q53
+
+Pod Wall,Chr03,528212,Glyma.03G005700,Pod_wall_L2,REF,l2_L61F
+
+Pod Wall,Chr03,528046,Glyma.03G005700,Pod_wall_L2,REF,l2_W116
+
+Pod Wall,Chr03,528245,Glyma.03G005700,Pod_wall_L2,REF,l2_Q50
+
+Pod Wall,Chr03,528076,Glyma.03G005700,Pod_wall_L2,REF,l2_R106fs
+
+Pod Wall,Chr19,37806160,Glyma.19G120400,Pod_wall_L1,l1,L1_RI
+
+Maturity,Chr04,4080056,Glyma.04G050200,Maturity_Long_Juvenile,J,j_R73G
+
+Maturity,Chr04,36758368,Glyma.04G156400,Maturity_E1LA,E1LA,E1la:K82E
+
+Maturity,Chr06,20207322,Glyma.06G207800,Maturity_e1-as/E1,e1-as,E1
+
+Maturity,Chr10,45310798,Glyma.10G221500,Maturity_E2/e2,E2,e2
+
+Maturity,Chr12,5520945,Glyma.12G073900,Maturity_DTF2,tof12-1,Tof12
+
+Maturity,Chr19,47657041,Glyma.19G224400,Maturity_E3/e3-tr_associated_K115Q,E3,e3_ass.
+
+Seed Compostion,Chr05,308412,Glyma.05G003900,Composition_RS3_snp6,RS3snp6,rs3snp6
+
+Seed Compostion,Chr05,307744,Glyma.05G003900,Composition_rs3_G75E,RS3,rs3G75E
+
+Seed Compostion,Chr05,2910312,Glyma.05G033500,Aromatic_BAD2_indel,BAD2,bad2
+
+Seed Compostion,Chr06,15222105,Glyma.06G179200,Composition_RS2_W331-,RS2,rs2
+
+Seed Compostion,Chr07,43139742,Glyma.07G254600,Composition_sg-1o,SG-10,sg-10
+
+Seed Compostion,Chr10,50014632,Glyma.10G278000,Composition_FAD2-1A_indel,AA,aa
+
+Seed Compostion,Chr13,43771864,Glyma.13G347600,Composition_Lipoxygenase_1_del,LX1,lx1
+
+Seed Compostion,Chr13,43764664,Glyma.13G347500,Composition_Lipoxygenase_2_H532Q,LX2,lx2
+
+Seed Compostion,Chr14,45937922,Glyma.14G194300,Composition_FAD3A_splice,AA,aa
+
+Seed Compostion,Chr15,2123901,Glyma.15G026300,Composition_Lipoxygenase_3_indel,LX3,lx3
+
+Seed Compostion,Chr15,3876981,Glyma.15G049200,Protein_SWEET,low_pro,hi_pro
+
+Seed Compostion,Chr18,5647138,Glyma.18G062000,Composition_FAD3C,CC,cc
+
+Seed Compostion,Chr20,33119281,Glyma.20G085100,Protein_POWR1,cct,CCT
+
+Seed Compostion,Chr20,35318088,Glyma.20G111000,Composition_FAD2-1B_P137R,BB,bb
+
+Pubesence Color,Chr03,45301350,Glyma.03G258700,Light_Tawny,Td,td_W177
+
+Pubesence Color,Chr03,45301275,Glyma.03G258700,Light_Tawny,Td,td_S202R
+
+Pubesence Color,Chr03,45301305,Glyma.03G258700,Light_Tawny,Td,td_F192fs
+
+Pubesence Color,Chr03,45301379,Glyma.03G258700,Light_Tawny,Td,td_A168fs
+
+Pubesence Color,Chr03,45301502,Glyma.03G258700,Light_Tawny,Td,td_P127S
+
+Pubesence Color,Chr06,18737366,Glyma.06G202300,Tawny,T,t
+
+Pubesence Color,Chr08,8578437,Glyma.08G111400,DomI_assoc.,ii,I_assoc.
+
+Pubesence Color,Chr09,45759137,Glyma.09G235100,R_Black/Brown,R,r_R75fs
+
+Pubesence Color,Chr09,45759165,Glyma.09G235100,R_Black/Brown,R,r_splice
+
+Pubesence Color,Chr09,45758856,Glyma.09G235100,R_Black/Brown,R,r_W32S
+
+Pubesence Color,Chr09,45759100,Glyma.09G235100,R_Black/Brown,R,r_G63fs
+
+Pubesence Color,Chr13,17316756,Glyma.13G072100,W1,w1,W1
+
+Shattering,Chr07,4332840,Glyma.07G050600,Pod_shatter,nst1a,NST1A
+
+Shattering,Chr16,29944393,NA,Pod_shatter,pdh1,Pdh1
+
+Plant Architecture,Chr18,55642486,Glyma.18G273600,Semi-determinate,dt2,Dt2
+
+Plant Architecture,Chr19,45183701,Glyma.19G194300,Dt1,DT1,dt1
+
+Plant Architecture,Chr20,35828042,Glyma.20G116200,Narrow_leaflets,Ln,ln
