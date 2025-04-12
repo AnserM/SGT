@@ -1,0 +1,10 @@
+name: custom_data_app
+title:
+username: ansermahmood
+account: ansermahmood
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14503167
+bundleId: 10101393
+url: https://ansermahmood.shinyapps.io/custom_data_app/
+version: 1

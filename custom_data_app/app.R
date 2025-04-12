@@ -8,7 +8,6 @@ library("DT")
 library("openxlsx")
 library("shinyjs")
 library("shinyWidgets")
-library("shinyFiles")
 
 
 
@@ -34,11 +33,13 @@ template_data <- do.call(rbind, lapply(template_positions, function(x) {
   )
 }))
 
+
 predefined_df <- read.csv("predefined_positions.csv", header = TRUE, stringsAsFactors = FALSE)
 position_choices <- split(
   apply(predefined_df[, -1], 1, paste, collapse = ","),  # collapse remaining columns into one string
   predefined_df$Category
 )
+
 
 
 ui <- fluidPage(
@@ -84,20 +85,18 @@ ui <- fluidPage(
       }
     "))
   ),
+  
+  
   div(class = "center-title",
-      titlePanel("Genotyping Tool")),
+      titlePanel("Soybean Genotyping Tool")),
   sidebarLayout(
     sidebarPanel(
       width = 5,
-      #tags$h4(tags$b("Gmax genome version Wm82.a2.v1"), style = "text-align: center;"),
-      #hr(),
-      ############### for custom datasets ##################
-      tags$h4("Path to directory containing gzipped and indexed VCF files"),
-      shinyDirButton("vcf_dir", "Please select a directory", "Please select a folder"),
-      verbatimTextOutput("dir_path"),
-      ######################################################
+      tags$h4("Upload VCF files (gzipped and indexed)"),
+      fileInput("vcf_files", "Choose VCF and index (.vcf.gz and .vcf.gz.tbi) files",
+                multiple = TRUE,
+                accept = c(".vcf.gz", ".vcf.gz.tbi")),
       hr(),
-      
       tags$h4("Pre-Determined Positions"),
       
       pickerInput(
@@ -109,6 +108,7 @@ ui <- fluidPage(
         multiple = TRUE),
       
       
+      hr(),
       tags$h4("Upload Custom Positions"),
       
       fileInput("custom_positions_file", "Choose CSV File",
@@ -119,6 +119,8 @@ ui <- fluidPage(
       
       downloadButton("download_template", "Download Template CSV"),
       
+      hr(),
+      
       tags$h4("Add Custom Positions"),
       
       
@@ -128,12 +130,11 @@ ui <- fluidPage(
       ),
       
       actionButton("add_row", "Add Row", icon = icon("plus")),
-      
       hr(),
-      
+      downloadButton("meta_data", "Download Metadata"),
+      hr(),
       actionButton("submit", "Submit", icon = icon("paper-plane")),
-      actionButton("display", "Display", disabled = TRUE),
-      downloadButton("download_excel", "Download Excel*", disabled = TRUE),
+      downloadButton("download_excel", "Download Excel", disabled = TRUE),
       hr(),
       uiOutput("position_error")
     ),
@@ -157,22 +158,8 @@ server <- function(input, output, session) {
   
   shinyjs::hide("loading-message")
   
-  
-  ######################### For Custom Datasets #########################
-  #choose directory
-  volumes <- c("DataFolder" = normalizePath("../data"))
-  shinyDirChoose(input, "vcf_dir", roots = volumes, session = session)
-  
-  vcf_directory <- reactive({
-    req(input$vcf_dir)
-    parseDirPath(volumes, input$vcf_dir)
-  })
-  
-  output$dir_path <- renderPrint({
-    vcf_directory()
-  })
-  
-  #######################################################################
+  #genotype_data <- read.csv("./info_files/genotypes.csv", header = FALSE, stringsAsFactors = FALSE)
+  #unique_genotypes <- unique(genotype_data$V1)
   
   
   input_count <- reactiveVal(1)
@@ -185,10 +172,10 @@ server <- function(input, output, session) {
       selector = "#input_rows",
       ui = fluidRow(
         id = paste0("row_", new_count),
-        column(2, textInput(paste0("chromosome_", new_count), "Chromosome", "")),
+        column(2, textInput(paste0("chromosome_", new_count), "Chrom")),
         column(2, numericInput(paste0("position_", new_count), "Position", value = NULL, min = 1)),
         column(2, textInput(paste0("gene_id_", new_count), "Gene ID", "")),
-        column(2, textInput(paste0("locus_name_", new_count), "Locus Name", "")),
+        column(2, textInput(paste0("locus_name_", new_count), "Locus", "")),
         column(2, textInput(paste0("ref_allele_", new_count), "Ref", "")),
         column(2, textInput(paste0("alt_allele_", new_count), "Alt", "")),
         column(1, actionButton(paste0("delete_row_", new_count), "️Trash", icon = icon("trash"), style = "color: red;"))
@@ -243,34 +230,36 @@ server <- function(input, output, session) {
   
   positions <- reactive({
     
-    print(input$predefined_positions)
-    
     ################### for custom datasets ######################
     # Initialize a data frame with selected predefined positions
-    parsed <- strsplit(input$predefined_positions, ",")
+    predefined_positions_df <- data.frame()
     
-    rows <- lapply(parsed, function(x) {
-      x <- trimws(x)
+    if (!is.null(input$predefined_positions) && length(input$predefined_positions) > 0) {
+      parsed <- strsplit(input$predefined_positions, ",")
       
-      if (length(x) == 6) {
-        data.frame(
-          Chromosome = x[1],
-          Position = as.numeric(x[2]),
-          Gene_ID = x[3],
-          Locus_Name = x[4],
-          Ref = x[5],
-          Alt = x[6],
-          stringsAsFactors = FALSE
-        )
-      } else {
-        warning(sprintf("Skipping malformed input: %s", paste(x, collapse = ",")))
-        NULL
-      }
-    })
-    
-    # Combine rows into one data frame
-    predefined_positions_df <- do.call(rbind, rows[!sapply(rows, is.null)])
+      rows <- lapply(parsed, function(x) {
+        x <- trimws(x)
+        
+        if (length(x) == 6) {
+          data.frame(
+            Chromosome = x[1],
+            Position = as.numeric(x[2]),
+            Gene_ID = x[3],
+            Locus_Name = x[4],
+            Ref = x[5],
+            Alt = x[6],
+            stringsAsFactors = FALSE
+          )
+        } else {
+          warning(sprintf("Skipping malformed input: %s", paste(x, collapse = ",")))
+          NULL
+        }
+      })
+      
+      predefined_positions_df <- do.call(rbind, rows[!sapply(rows, is.null)])
+    }
     ##############################################################
+    
     # Combine predefined positions with custom positions
     custom_positions_df <- data.frame(
       Chromosome = unlist(lapply(1:input_count(), function(i) input[[paste0("chromosome_", i)]])),
@@ -283,12 +272,16 @@ server <- function(input, output, session) {
     )
     
     
-    if (!is.null(custom_file_df())) {
-      custom_positions_df <- rbind(custom_positions_df, custom_file_df())
+    
+    # Ensure both data frames are valid before combining
+    if (!is.null(custom_file_df()) && nrow(custom_file_df()) > 0) {
+      custom_positions_df <- bind_rows(custom_positions_df, custom_file_df())
     }
     
-    # Combine both data frames
+    # Combine everything with predefined positions (safe even if one is empty)
     combined_positions <- bind_rows(predefined_positions_df, custom_positions_df)
+    
+    print(combined_positions)
     return(combined_positions)
   })
   
@@ -317,7 +310,6 @@ server <- function(input, output, session) {
   observeEvent(input$submit, {
     shinyjs::show("loading-message")
     on.exit(shinyjs::hide("loading-message"))
-    
     shinyjs::disable("download_excel")
     
     req(positions())
@@ -350,33 +342,33 @@ server <- function(input, output, session) {
     # Clear any previous errors if validation passes
     output$position_error <- renderUI(NULL)
     
-    ###################### for custom datasets #####################
     
-    req(vcf_directory())
     
-    vcf_directory <- vcf_directory()
-    ###############################################################
     
-    all_files <- list.files(vcf_directory, 
-                            pattern = "\\.vcf\\.gz", 
-                            full.names = TRUE)
+    # Map uploaded files by name
+    file_paths <- setNames(input$vcf_files$datapath, input$vcf_files$name)
     
-    vcf_files <- all_files[!grepl("\\.tbi$", all_files)]
+    # Match .vcf.gz and .vcf.gz.tbi files
+    vcf_files <- file_paths[grepl("\\.vcf\\.gz$", names(file_paths))]
+    tbi_files <- file_paths[grepl("\\.vcf\\.gz\\.tbi$", names(file_paths))]
+    
+    # Pair each VCF with its .tbi file
+    paired_files <- lapply(names(vcf_files), function(vcf_name) {
+      index_name <- paste0(vcf_name, ".tbi")
+      if (index_name %in% names(tbi_files)) {
+        list(vcf = vcf_files[[vcf_name]], index = tbi_files[[index_name]], name = vcf_name)
+      } else {
+        warning(sprintf("Missing index for: %s", vcf_name))
+        NULL
+      }
+    })
+    paired_files <- Filter(Negate(is.null), paired_files)
+    
     
     results <- list()
     
-    for (vcf_file in vcf_files) {
-      index_file <- paste0(vcf_file, ".tbi")
-      
-      if (!file.exists(vcf_file) || !file.exists(index_file)) {
-        message(sprintf("File or index missing for: %s", vcf_file))
-        next
-      }
-      
-      vcf_tabix <- TabixFile(vcf_file, index = index_file)
-      
-      ####################### For custom datasets #########################
-      #chr_name <- sub(".*_(Chr\\d+)_nohets_dr_renamed.*", "\\1", vcf_file)
+    for (pair in paired_files) {
+      vcf_tabix <- TabixFile(pair$vcf, index = pair$index)
       
       for (chr in unique(positions()$Chromosome)) {
         if (chr %in% seqnamesTabix(vcf_tabix)) {
@@ -395,7 +387,7 @@ server <- function(input, output, session) {
             next
           }
           
-          print(sprintf("Processing file: %s for chromosome %s", vcf_file, chr))
+          
           
           chromosomes <- seqnames(rowRanges(vcf_subset))
           positions_vcf <- start(rowRanges(vcf_subset))
@@ -435,12 +427,13 @@ server <- function(input, output, session) {
             select(Chromosome, Position, Ref, Alt, Gene_ID, Locus_Name, everything())
           
           # Store each chromosome's result separately or combine them later
-          results[[paste0(vcf_file, "_", chr)]] <- modified_df
+          results[[paste0(pair$name, "_", chr)]] <- modified_df
         } else {
-          message(sprintf("Chromosome %s not found in VCF index: %s", chr, vcf_file))
+          message(sprintf("Chromosome %s not found in VCF index: %s", chr, pair$name))
         }
       }
     }
+    
     
     if (!is.null(results) && length(results) > 0) {
       found_df <- bind_rows(results)%>%
@@ -474,6 +467,15 @@ server <- function(input, output, session) {
       mutate(Info = gsub("\\.", "-", Info))
     
     
+    if (length(input$genotype) > 0) {
+      combined_results <- combined_results %>%
+        filter(
+          Info == "Chromosome" | Info == "Position" | Info == "Ref" | Info == "Alt" |
+            Info == "Gene_ID" | Info == "Locus_Name" |
+            Info %in% input$genotype
+        )
+    }
+    
     
     new_colnames <- c("Info", sapply(2:ncol(combined_results), function(i) {
       # Get the first four values of the column, collapsing them with "_"
@@ -499,6 +501,31 @@ server <- function(input, output, session) {
       unfound_df%>% select(Chromosome, Position, Gene_ID, Locus_Name, Ref, Alt)
     }, 
     rownames = FALSE)
+    
+    output$data_table <- renderDT({
+      datatable(
+        results_list(), 
+        options = list(pageLength = 24), 
+        rownames = TRUE,
+        callback = JS(
+          "table.on('draw', function() {",
+          "  var rows = table.rows().nodes();",
+          "  $(rows).each(function(index, row) {",
+          "    $('td', row).each(function(index, cell) {",
+          "      var cellValue = $(cell).text();",
+          "      if (cellValue.includes('Ref')) {",
+          "        $(cell).css('background-color', '#faf3dd');",
+          "      } else if (cellValue.includes('Alt')) {",
+          "        $(cell).css('background-color', '#7FC8F5');",
+          "      } else if (cellValue === 'Het') {",
+          "        $(cell).css('background-color', '#c8d5b9');",
+          "      }",
+          "    });",
+          "  });",
+          "});"
+        )
+      ) 
+    })
     
     options(shiny.maxRequestSize = 1000 * 1024^2)
     
@@ -563,45 +590,11 @@ server <- function(input, output, session) {
         
       }
     )
-    shinyjs::enable("display")
     shinyjs::enable("download_excel")
   })
   
-  observeEvent(input$display, {
-    req(results_list())
-    shinyjs::disable("display")
-    
-    
-    output$data_table <- renderDT({
-      datatable(
-        results_list(), 
-        options = list(pageLength = 24), 
-        rownames = TRUE,
-        callback = JS(
-          "table.on('draw', function() {",
-          "  var rows = table.rows().nodes();",
-          "  $(rows).each(function(index, row) {",
-          "    $('td', row).each(function(index, cell) {",
-          "      var cellValue = $(cell).text();",
-          "      if (cellValue.includes('Ref')) {",
-          "        $(cell).css('background-color', '#faf3dd');",
-          "      } else if (cellValue.includes('Alt')) {",
-          "        $(cell).css('background-color', '#7FC8F5');",
-          "      } else if (cellValue === 'Het') {",
-          "        $(cell).css('background-color', '#c8d5b9');",
-          "      }",
-          "    });",
-          "  });",
-          "});"
-        )
-      ) 
-    })
-  })
   
-  observeEvent(input$submit, {
-    output$data_table <- NULL  # Clear the data table on new submission
-    #shinyjs::disable("display")  # Disable Display button again after new submission
-  })
+  
 }
 
 
