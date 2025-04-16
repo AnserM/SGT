@@ -1,3 +1,26 @@
+######################## Install required packages #########################
+
+cran_packages <- c("shiny", "tidyverse", "dplyr", "DT", "openxlsx", "shinyjs", "shinyWidgets")
+bioc_packages <- c("Rsamtools", "GenomicRanges", "VariantAnnotation")
+
+installed <- rownames(installed.packages())
+
+for (pkg in cran_packages) {
+  if (!(pkg %in% installed)) {
+    install.packages(pkg, dependencies = TRUE)
+  }
+}
+
+if (!requireNamespace("BiocManager", quietly = TRUE))
+  install.packages("BiocManager")
+
+for (pkg in bioc_packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    BiocManager::install(pkg)
+  }
+}
+
+
 library("shiny")
 library("Rsamtools")
 library("GenomicRanges")
@@ -12,7 +35,7 @@ library("shinyWidgets")
 
 
 
-
+################# template df for custom positions ###########
 template_positions <- c(
   "Chr03,45301350,Glyma.03G258700,Light_Tawny,Td,td_W177*",
   "Chr03,45301275,Glyma.03G258700,Light_Tawny,Td,td_S202R"
@@ -34,9 +57,12 @@ template_data <- do.call(rbind, lapply(template_positions, function(x) {
 }))
 
 
+################# Meta data Soy2939 ################
 
 soy_metadata <- read.csv("./info_files/Soy2939_metadata_dr.txt")
 
+
+##################set UI #####################
 ui <- fluidPage(
   useShinyjs(),
   tags$head(
@@ -89,6 +115,9 @@ ui <- fluidPage(
       width = 5,
       tags$h4(tags$b("Gmax genome version Wm82.a2.v1"), style = "text-align: center;"),
       hr(),
+      
+      ################## Predefined positions ######################
+      
       tags$h4("Pre-Determined Positions"),
       
       pickerInput(
@@ -170,6 +199,9 @@ ui <- fluidPage(
         multiple = TRUE),
       
       hr(),
+      
+      ############### custom positions ############
+      
       tags$h4("Upload Custom Positions"),
       
       fileInput("custom_positions_file", "Choose CSV File",
@@ -178,6 +210,8 @@ ui <- fluidPage(
       
       actionButton("clear_file", "Clear File"),
       
+      ############### template download #############
+      
       downloadButton("download_template", "Download Template CSV"),
       
       hr(),
@@ -185,29 +219,40 @@ ui <- fluidPage(
       tags$h4("Add Custom Positions (Chromsomes named as Chr01 ...)"),
       
       
-      # Container for dynamic input rows
+      ############## custom postions using dynamic rows #############
       tags$div(id = "input_rows",
-               uiOutput("dynamic_inputs")  # Use uiOutput to render dynamic inputs
+               uiOutput("dynamic_inputs") 
       ),
       
       actionButton("add_row", "Add Row", icon = icon("plus")),
       hr(),
+      
+      ############## Genotype selection #############
+      
       selectizeInput(
         inputId = "genotype",  # Updated input ID
         label = "Select genotypes or paste a comma separated list:",
-        choices = NULL,  # Choices will be dynamically updated
-        multiple = TRUE,  # Allow multi-selection
+        choices = NULL,  
+        multiple = TRUE, 
         options = list(placeholder = "Select or search genotypes...", maxOptions = 20,
-                       create = TRUE,  # Allow users to paste or type custom values
+                       create = TRUE, 
                        delimiter = ",")
       ),
+      
+      ############## dowload metadata #############
+      
       downloadButton("meta_data", "Download Metadata"),
       hr(),
+      
+      ############ submit and download buttons #################
+      
       actionButton("submit", "Submit", icon = icon("paper-plane")),
       downloadButton("download_excel", "Download Excel", disabled = TRUE),
       hr(),
       uiOutput("position_error")
     ),
+    
+    ############## main panel for outputs #################
     
     mainPanel(
       tags$div(
@@ -217,24 +262,27 @@ ui <- fluidPage(
       ),
       width = 6,
       tabsetPanel(
-        tabPanel("Found Positions", DTOutput("data_table")),  # Tab for found positions
-        tabPanel("Unfound Positions", DTOutput("unfound_positions_table"))  # Tab for unfound positions
+        tabPanel("Found Positions", DTOutput("data_table")), 
+        tabPanel("Unfound Positions", DTOutput("unfound_positions_table"))
       )
     )
   )
 )
 
+
+
+################ server code ##################
+
 server <- function(input, output, session) {
   
   shinyjs::hide("loading-message")
   
-  #genotype_data <- read.csv("./info_files/genotypes.csv", header = FALSE, stringsAsFactors = FALSE)
-  #unique_genotypes <- unique(genotype_data$V1)
+  ################# read in file containing genotype names ###################
   
   genotype_data_path <- "./info_files/genotypes.csv"
   
   genotype_file_data <- reactive({
-    req(file.exists(genotype_data_path))  # Ensure the file exists
+    req(file.exists(genotype_data_path))
     
     # Read the file into a data frame
     genotype_data <- read.csv(genotype_data_path, header = FALSE, stringsAsFactors = FALSE)
@@ -242,13 +290,17 @@ server <- function(input, output, session) {
     return(unique_genotypes)
   })
   
+  ################# Fill in genotype choices ###################
+  
   observe({
     genotype_data <- genotype_file_data()
     updateSelectizeInput(session, "genotype", 
-                         choices = genotype_data,  # Use genotypes as options
+                         choices = genotype_data,
                          selected = NULL,
-                         server= TRUE)  # No pre-selection
+                         server= TRUE)
   })
+  
+  ################# read inputs from the dynamic rows ###################
   
   input_count <- reactiveVal(1)
   
@@ -271,7 +323,7 @@ server <- function(input, output, session) {
     )
   })
   
-  # Observer to handle delete button clicks
+  ############### Handle delete button clicks #################
   observe({
     lapply(1:input_count(), function(i) {
       local({
@@ -287,11 +339,12 @@ server <- function(input, output, session) {
     })
   })
   
+  ################ read in custom input file #################
   custom_file_df <- reactiveVal(NULL)
   
   # Observe the file input to process the uploaded file
   observeEvent(input$custom_positions_file, {
-    req(input$custom_positions_file)  # Ensure the file input is not NULL
+    req(input$custom_positions_file)
     
     # Read the file data
     file_data <- read.csv(input$custom_positions_file$datapath, 
@@ -302,20 +355,20 @@ server <- function(input, output, session) {
     
     # Validate the required columns
     if (all(c("Chromosome", "Position", "Gene_ID", "Locus_Name", "Ref", "Alt") %in% names(file_data))) {
-      custom_file_df(file_data)  # Store the data in the reactiveVal if valid
+      custom_file_df(file_data)
     } else {
       showNotification("Uploaded file must contain the required columns: Chromosome, Position, Gene_ID, Locus_Name, Ref, Alt", type = "error")
-      custom_file_df(NULL)  # Clear the data if validation fails
+      custom_file_df(NULL)
     }
   })
   
   observeEvent(input$clear_file, {
-    custom_file_df(NULL)  # Clear the custom file data when the 'Clear' button is pressed
-    showNotification("Custom file data has been cleared", type = "message")  # Optionally show a message
+    custom_file_df(NULL)
+    showNotification("Custom file data has been cleared", type = "message")
     reset("custom_positions_file")
   })
   
-  
+  ################### Read in selection from predefined positions ######################
   positions <- reactive({
     # Initialize a data frame with selected predefined positions
     predefined_positions_df <- data.frame(
@@ -328,7 +381,7 @@ server <- function(input, output, session) {
       stringsAsFactors = FALSE
     )
     
-    # Combine predefined positions with custom positions
+    ################### Combine predefined positions with custom positions ######################
     custom_positions_df <- data.frame(
       Chromosome = unlist(lapply(1:input_count(), function(i) input[[paste0("chromosome_", i)]])),
       Position = unlist(lapply(1:input_count(), function(i) input[[paste0("position_", i)]])),
@@ -349,7 +402,7 @@ server <- function(input, output, session) {
     return(combined_positions)
   })
   
-  # Download handler for the template CSV
+  ############### Download handler for template ##################
   output$download_template <- downloadHandler(
     filename = function() {
       paste("template_positions", Sys.Date(), ".csv", sep = "")
@@ -359,7 +412,7 @@ server <- function(input, output, session) {
     }
   )
   
-  
+  ############### Download handler for metadata ##################
   output$meta_data <- downloadHandler(
     filename = function() {
       paste("Soy2939_Metadata", Sys.Date(), ".csv", sep = "")
@@ -369,12 +422,17 @@ server <- function(input, output, session) {
     }
   )
   
+  
+  ############## initialize results ##############
+  
   results_list <- reactiveVal(data.frame())
   
   observeEvent(input$submit, {
     shinyjs::show("loading-message")
     on.exit(shinyjs::hide("loading-message"))
     shinyjs::disable("download_excel")
+    
+    ############### read in specified positions ###########
     
     req(positions())
 
@@ -390,7 +448,7 @@ server <- function(input, output, session) {
     non_numeric <- is.na(pos_numeric)
     valid_numeric <- pos_numeric[!non_numeric]
     
-    count_valid <- length(valid_numeric)  # Counting valid numeric values
+    count_valid <- length(valid_numeric)
     print(count_valid)
     
     # Check if any validation fails
@@ -408,7 +466,7 @@ server <- function(input, output, session) {
     output$position_error <- renderUI(NULL)
     
     
-    
+    #################### read in the vcf files and indexes  #####################
     vcf_directory <- "./data/output/"
     
     all_files <- list.files(vcf_directory, 
@@ -418,6 +476,8 @@ server <- function(input, output, session) {
     vcf_files <- all_files[!grepl("\\.tbi$", all_files)]
     
     results <- list()
+    
+    ################## search positions within vcf files ##################
     
     for (vcf_file in vcf_files) {
       index_file <- paste0(vcf_file, ".tbi")
@@ -452,7 +512,7 @@ server <- function(input, output, session) {
         alts <- sapply(rowRanges(vcf_subset)$ALT, function(alt) paste(alt, collapse = ","))
         geno_matrix <- geno(vcf_subset)$GT
         
-        # Create a data frame with separate columns for each genotype
+        ################### convert found positions into a df #################
         zdf <- data.frame(
           Chromosome = chromosomes,
           Position = positions,
@@ -468,6 +528,8 @@ server <- function(input, output, session) {
         df <- cbind(zdf, genotypes_df) %>%
           rename_with(~ sub("^geno\\.", "", .), starts_with("geno")) %>%
           select(Chromosome, Position, Ref, Alt, everything())
+        
+        ############## modify values in the df ####################
         
         modified_df <- df %>%
           mutate(across(5:(ncol(df)), ~ case_when(
@@ -491,6 +553,8 @@ server <- function(input, output, session) {
       }
     }
     
+    ################### combine results in to one df ########################
+    
     if (!is.null(results) && length(results) > 0) {
       found_df <- bind_rows(results)%>%
         data.frame() %>% select(Chromosome, Position, Gene_ID, Locus_Name, Ref, Alt)} else {
@@ -503,8 +567,8 @@ server <- function(input, output, session) {
                                  Alt = character())
         }
     
-    #print(found_df)
     
+    ############### message if no positions found ################
     if (nrow(found_df) == 0) {
       showModal(modalDialog(
         title = "No Positions Found",
@@ -522,7 +586,7 @@ server <- function(input, output, session) {
       setNames(c("Info", paste0(1:(ncol(.) - 1))))%>%
       mutate(Info = gsub("\\.", "-", Info))
     
-    
+    ################# combine results into one df #####################
     if (length(input$genotype) > 0) {
       combined_results <- combined_results %>%
         filter(
@@ -535,8 +599,8 @@ server <- function(input, output, session) {
     
     new_colnames <- c("Info", sapply(2:ncol(combined_results), function(i) {
       # Get the first four values of the column, collapsing them with "_"
-      first_four_values <- combined_results[, i][1:2]  # Take the first four values
-      paste(na.omit(first_four_values), collapse = "_")  # Concatenate non-NA values
+      first_four_values <- combined_results[, i][1:2] 
+      paste(na.omit(first_four_values), collapse = "_")
     }))
     
     # Rename columns
@@ -546,7 +610,7 @@ server <- function(input, output, session) {
     results_list(combined_results)
     
     
-    # create the unfound df
+    ############## create the unfound positions df ##################
     positions_data <- positions()
     positions_data %>% select(Chromosome, Position, Gene_ID, Locus_Name, Ref, Alt)
     
@@ -558,6 +622,7 @@ server <- function(input, output, session) {
     }, 
     rownames = FALSE)
     
+    ################## output results with styling ##################
     output$data_table <- renderDT({
       datatable(
         results_list(), 
@@ -585,6 +650,8 @@ server <- function(input, output, session) {
     
     options(shiny.maxRequestSize = 1000 * 1024^2)
     
+    
+    ######################## output excel file for download ####################
     output$download_excel <- downloadHandler(
       filename = function() {
         paste("VCF_Positions_Summary_", Sys.Date(), ".zip", sep = "")
@@ -611,22 +678,22 @@ server <- function(input, output, session) {
         
         # Apply styles only if the total number of cells is less than
         if (total_cells < 10000) {
-          rows <- 1:nrow(df) + 1  # +1 to account for the header row
+          rows <- 1:nrow(df) + 1 
           cols <- 1:ncol(df)
           
           for (row in rows) {
             for (col in cols) {
               cell_value <- df[row - 1, col]
-              cell_style <- NULL  # Initialize as NULL
+              cell_style <- NULL
               
               # Apply cell colors based on conditions in the data frame
               if (!is.na(cell_value)) {
                 if (grepl("Ref", cell_value)) {
-                  cell_style <- createStyle(fgFill = "#faf3dd")  # Light yellow
+                  cell_style <- createStyle(fgFill = "#faf3dd") 
                 } else if (grepl("Alt", cell_value)) {
-                  cell_style <- createStyle(fgFill = "#7FC8F5")  # Light blue
+                  cell_style <- createStyle(fgFill = "#7FC8F5")
                 } else if (cell_value == "Het") {
-                  cell_style <- createStyle(fgFill = "#c8d5b9")  # Light green
+                  cell_style <- createStyle(fgFill = "#c8d5b9")
                 }
               }
               
