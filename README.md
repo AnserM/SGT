@@ -7,7 +7,7 @@ This Shiny application allows users to genotype for **SNPs** and **Indels** of i
 
 - 🔗 **Soybean Deployment (SoyKB):**  
   Use this for querying the soybean 2939 WGRS dataset  
-  👉 [https://soykb.org/SoybeanGenotypingTool/](https://soykb.org/tools/genotyping)
+  👉 [https://soykb.org/SoybeanGenotypingTool/](https://soykb.org/SoybeanGenotypingTool/)
 
 - 🔧 **Custom Deployment:**  
   Upload and analyze your indexed VCFs using this app  
